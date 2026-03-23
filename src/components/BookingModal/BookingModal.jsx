@@ -23,6 +23,7 @@ export default function BookingModal({ isOpen, onClose, initialService = null })
     time: '',
     name: '',
     phone: '',
+    notes: '',
   });
   const [bookingId, setBookingId] = useState(null);
   const [submitError, setSubmitError] = useState('');
@@ -36,15 +37,15 @@ export default function BookingModal({ isOpen, onClose, initialService = null })
         const saved = sessionStorage.getItem(SESSION_KEY);
         if (saved && !initialService) {
           const draft = JSON.parse(saved);
-          setBooking(draft.booking || { service: null, date: '', time: '', name: '', phone: '' });
+          setBooking(draft.booking || { service: null, date: '', time: '', name: '', phone: '', notes: '' });
           setStep(draft.step ?? 0);
         } else {
           setStep(initialService ? 1 : 0);
-          setBooking({ service: initialService, date: '', time: '', name: '', phone: '' });
+          setBooking({ service: initialService, date: '', time: '', name: '', phone: '', notes: '' });
         }
       } catch {
         setStep(initialService ? 1 : 0);
-        setBooking({ service: initialService, date: '', time: '', name: '', phone: '' });
+        setBooking({ service: initialService, date: '', time: '', name: '', phone: '', notes: '' });
       }
       setBookingId(null);
       setSubmitError('');
@@ -78,7 +79,7 @@ export default function BookingModal({ isOpen, onClose, initialService = null })
     try { sessionStorage.setItem(SESSION_KEY, JSON.stringify({ booking, step: n })); } catch {}
   }
 
-  async function handleVerified(paymentMethod) {
+  async function handleVerified() {
     setCreatingBooking(true);
     setSubmitError('');
     try {
@@ -94,7 +95,7 @@ export default function BookingModal({ isOpen, onClose, initialService = null })
           date: booking.date,
           time: booking.time,
           duration: booking.service.durationMins,
-          paymentMethod: paymentMethod || 'unknown',
+          notes: booking.notes || '',
         });
         const res = await fetch(`${url}?${params}`);
         const text = await res.text();
@@ -212,6 +213,7 @@ export default function BookingModal({ isOpen, onClose, initialService = null })
               lang={lang}
               name={booking.name}
               phone={booking.phone}
+              notes={booking.notes}
               onChange={update}
               onSubmit={() => goToStep(3)}
               onBack={() => goToStep(1)}
@@ -233,7 +235,7 @@ export default function BookingModal({ isOpen, onClose, initialService = null })
           {step === 4 && !creatingBooking && !submitError && (
             <HealthDeclarationStep
               lang={lang}
-              onDone={() => { goToStep(5); handleVerified('none'); }}
+              onDone={() => { handleVerified(); }}
             />
           )}
           {step === 4 && (creatingBooking || submitError) && (
@@ -252,7 +254,7 @@ export default function BookingModal({ isOpen, onClose, initialService = null })
                   <div className={styles.creatingActions}>
                     <button
                       className="bm-btn-primary"
-                      onClick={() => { setSubmitError(''); handleVerified('none'); }}
+                      onClick={() => { setSubmitError(''); handleVerified(); }}
                       type="button"
                     >
                       {lang === 'en' ? 'Try Again' : 'נסי שוב'}

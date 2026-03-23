@@ -15,7 +15,7 @@ function formatPhoneDisplay(value) {
   return digits.slice(0, 3) + '-' + digits.slice(3, 6) + '-' + digits.slice(6);
 }
 
-export default function CustomerStep({ lang, name, phone, onChange, onSubmit, onBack, loading, error }) {
+export default function CustomerStep({ lang, name, phone, notes, onChange, onSubmit, onBack, loading, error }) {
   const t = BOOKING_MODAL;
   const [touched, setTouched] = useState({ name: false, phone: false });
   const nameRef = useRef(null);
@@ -110,6 +110,20 @@ export default function CustomerStep({ lang, name, phone, onChange, onSubmit, on
               {lang === 'en' ? 'A verification code will be sent to this number' : 'קוד אימות יישלח למספר זה'}
             </p>
           )}
+        </div>
+
+        {/* Special notes */}
+        <div className={styles.field}>
+          <label className={styles.label} htmlFor="bm-notes">
+            {lang === 'en' ? 'Special requests (optional)' : 'בקשות מיוחדות (אופציונלי)'}
+          </label>
+          <textarea
+            id="bm-notes"
+            className={styles.textarea}
+            rows={3}
+            value={notes || ''}
+            onChange={(e) => onChange({ notes: e.target.value })}
+          />
         </div>
 
         {error && <p className={styles.submitError}>{error}</p>}

@@ -21,18 +21,21 @@ function timeToMins(t) { const [h, m] = t.split(':').map(Number); return h * 60 
 
 function getFilteredSlots(durationMins) {
   return AVAILABLE_SLOTS.filter((slot) => {
-    return timeToMins(slot) + durationMins <= 20 * 60;
+    return timeToMins(slot) + durationMins <= 22 * 60;
   });
 }
 
-function isSaturday(dateStr) {
-  if (!dateStr) return false;
-  const d = new Date(dateStr + 'T00:00:00');
-  return d.getDay() === 6;
+function getDayAllowedSlots(dateStr, slots) {
+  if (!dateStr) return slots;
+  const day = new Date(dateStr + 'T00:00:00').getDay(); // 5=Fri, 6=Sat
+  if (day === 5) return slots.filter((s) => timeToMins(s) <= timeToMins('14:00'));
+  if (day === 6) return slots.filter((s) => timeToMins(s) >= timeToMins('19:00'));
+  return slots;
 }
 
-function isDateUnavailable(date) {
-  return date.toDate(getLocalTimeZone()).getDay() === 6;
+
+function isDateUnavailable() {
+  return false;
 }
 
 export default function DateTimeStep({ lang, service, date, time, onDateChange, onTimeChange, onNext, onBack }) {
@@ -44,13 +47,13 @@ export default function DateTimeStep({ lang, service, date, time, onDateChange, 
   const durationMins = service?.durationMins ?? 60;
   const availableSlots = getFilteredSlots(durationMins);
   const minDate = today(getLocalTimeZone()).add({ days: 1 });
+  const maxDate = today(getLocalTimeZone()).add({ days: 14 });
   const calendarValue = date ? parseDate(date) : null;
 
   function tryNextDay() {
     if (!date) return;
     const d = new Date(date + 'T00:00:00');
     d.setDate(d.getDate() + 1);
-    if (d.getDay() === 6) d.setDate(d.getDate() + 1);
     onDateChange(d.toISOString().split('T')[0]);
   }
 
@@ -58,7 +61,7 @@ export default function DateTimeStep({ lang, service, date, time, onDateChange, 
     setBookedSlots([]);
     setExtraSlots([]);
 
-    if (!date || isSaturday(date)) return;
+    if (!date) return;
 
     const url = import.meta.env.VITE_APPS_SCRIPT_URL;
     if (!url) return;
@@ -84,9 +87,9 @@ export default function DateTimeStep({ lang, service, date, time, onDateChange, 
   }, [date]);
 
   const validExtra = extraSlots.filter((s) => timeToMins(s) + durationMins <= 20 * 60);
-  const allSlots = [...new Set([...availableSlots, ...validExtra])].sort();
+  const allSlots = getDayAllowedSlots(date, [...new Set([...availableSlots, ...validExtra])].sort());
   const freeSlots = allSlots.filter((s) => !bookedSlots.includes(s));
-  const canNext = date && time && !isSaturday(date) && !loadingSlots;
+  const canNext = date && time && !loadingSlots;
 
   return (
     <div className={styles.root}>
@@ -102,6 +105,7 @@ export default function DateTimeStep({ lang, service, date, time, onDateChange, 
         <DatePicker
           value={calendarValue}
           minValue={minDate}
+          maxValue={maxDate}
           isDateUnavailable={isDateUnavailable}
           onChange={(val) => val && onDateChange(val.toString())}
         >
@@ -128,7 +132,7 @@ export default function DateTimeStep({ lang, service, date, time, onDateChange, 
       </div>
 
       {/* Time slots */}
-      {date && !isSaturday(date) && (
+      {date && (
         <div className={styles.field}>
           <label className={styles.label}>
             {lang === 'en' ? t.timeLabelEn : t.timeLabelHe}

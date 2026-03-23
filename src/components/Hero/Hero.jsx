@@ -9,11 +9,11 @@ import heroBg from "../../assets/hero/hero-bg.mp4";
 
 const introLines = {
   he: [
-    "נעים להכיר 💖 שמי שובל, מעסה מקצועית לנשים בלבד.",
+    "נעים להכיר שמי שובל, מעסה מקצועית לנשים בלבד.",
     "עיסוי טיפולים ומפנקים – תאילנדי, שבדי, רקמות עמוק, אבנים חמות והריון.",
   ],
   en: [
-    "Nice to meet you 💖 My name is Shoval, a professional masseuse for women only.",
+    "Nice to meet you  My name is Shoval, a professional masseuse for women only.",
     "Therapeutic & pampering massages – Thai, Swedish, deep tissue, hot stones and prenatal.",
   ],
 };

@@ -55,8 +55,13 @@ export default function ConfirmationStep({ lang, booking, bookingId, rescheduleU
 
   // Fire confetti on mount
   useEffect(() => {
+    const canvas = document.createElement('canvas');
+    canvas.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999';
+    document.body.appendChild(canvas);
+    const myConfetti = confetti.create(canvas, { resize: true });
+
     const timer = setTimeout(() => {
-      confetti({
+      myConfetti({
         particleCount: 90,
         spread: 70,
         origin: { y: 0.5 },
@@ -65,7 +70,11 @@ export default function ConfirmationStep({ lang, booking, bookingId, rescheduleU
         gravity: 0.9,
       });
     }, 400);
-    return () => clearTimeout(timer);
+
+    return () => {
+      clearTimeout(timer);
+      canvas.remove();
+    };
   }, []);
 
   const serviceName = lang === 'en' ? booking.service?.nameEn : booking.service?.nameHe;

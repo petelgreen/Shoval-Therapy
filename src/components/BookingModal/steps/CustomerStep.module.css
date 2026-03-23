@@ -77,6 +77,32 @@
   font-family: var(--font-body);
 }
 
+.textarea {
+  width: 100%;
+  padding: 14px var(--space-5);
+  border: 1.5px solid var(--color-surface-2);
+  border-radius: var(--radius-md);
+  font-size: var(--text-base);
+  font-family: var(--font-body);
+  color: var(--color-text);
+  background: var(--color-bg);
+  outline: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  box-sizing: border-box;
+  resize: vertical;
+  min-height: 80px;
+  direction: inherit;
+}
+
+.textarea:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(201, 169, 110, 0.15);
+}
+
+.textarea:hover:not(:focus) {
+  border-color: var(--color-accent);
+}
+
 .submitError {
   font-size: var(--text-sm);
   color: var(--color-error, #b94040);

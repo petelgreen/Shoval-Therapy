@@ -18,7 +18,7 @@
 //
 // SHEET SETUP:
 // The script will auto-create a "Bookings" sheet with headers on first run.
-// Columns: BookingID | Timestamp | Name | Phone | Service | Date | Time | Status
+// Columns: BookingID | Timestamp | Name | Phone | Service | Date | Time | Status | Duration | Notes
 //
 // SMS OTP SETUP (Twilio):
 // 1. Sign up at https://www.twilio.com and get a free trial number.
@@ -76,6 +76,8 @@ var ALL_SLOTS = [
   "17:00",
   "18:00",
   "19:00",
+  "20:00",
+  "21:00",
 ];
 var BREAK_MINUTES = 15;
 
@@ -179,7 +181,7 @@ function getBookedSlots(date) {
     }
 
     // Propose an extra slot at end+break if it doesn't align with a standard slot
-    if (endWithBreak < 20 * 60) {
+    if (endWithBreak < 22 * 60) {
       var candidate = minsToTime(endWithBreak);
       if (
         ALL_SLOTS.indexOf(candidate) === -1 &&
@@ -214,6 +216,38 @@ function getBookedSlots(date) {
     }
   }
 
+  // Day-of-week restrictions
+  var dayOfWeek = new Date(date + "T12:00:00").getDay(); // 0=Sun … 5=Fri, 6=Sat
+
+  // Friday: nothing after 14:00
+  if (dayOfWeek === 5) {
+    for (var f = 0; f < ALL_SLOTS.length; f++) {
+      if (
+        timeToMins(ALL_SLOTS[f]) > timeToMins("14:00") &&
+        bookedSlots.indexOf(ALL_SLOTS[f]) === -1
+      ) {
+        bookedSlots.push(ALL_SLOTS[f]);
+      }
+    }
+    // Extra slots past 14:00 are irrelevant on Fridays
+    extraSlots = extraSlots.filter(function (s) {
+      return timeToMins(s) <= timeToMins("14:00");
+    });
+  }
+
+  // Saturday: only 19:00–21:00 is available
+  if (dayOfWeek === 6) {
+    for (var sa = 0; sa < ALL_SLOTS.length; sa++) {
+      if (
+        timeToMins(ALL_SLOTS[sa]) < timeToMins("19:00") &&
+        bookedSlots.indexOf(ALL_SLOTS[sa]) === -1
+      ) {
+        bookedSlots.push(ALL_SLOTS[sa]);
+      }
+    }
+    extraSlots = extraSlots.filter(function (s) { return timeToMins(s) >= timeToMins("19:00"); });
+  }
+
   return { bookedSlots: bookedSlots, extraSlots: extraSlots };
 }
 
@@ -244,7 +278,9 @@ function getOrCreateBlockedSlotsSheet() {
 
 function createBooking(data) {
   if (isTooFarAhead(data.date)) {
-    throw new Error("לא ניתן להזמין תור ביותר מ-" + MAX_ADVANCE_DAYS + " ימים מראש.");
+    throw new Error(
+      "לא ניתן להזמין תור ביותר מ-" + MAX_ADVANCE_DAYS + " ימים מראש.",
+    );
   }
 
   var sheet = getOrCreateSheet();
@@ -259,9 +295,9 @@ function createBooking(data) {
     data.service,
     data.date,
     data.time,
-    "ממתין לאישור", // Column H: Status — pending deposit verification
+    "מאושר", // Column H: Status
     parseInt(data.duration) || 60, // Column I: Duration in minutes
-    data.paymentMethod || "unknown", // Column J: PaymentMethod
+    data.notes || "", // Column J: Notes
   ]);
 
   // Force date and time cells to plain text so Sheets never auto-converts them
@@ -310,13 +346,16 @@ function sendWhatsApp(e164, body) {
   var from = props.getProperty("TWILIO_WHATSAPP_FROM");
 
   if (!sid || !token || !from) {
-    Logger.log("WhatsApp (no TWILIO_WHATSAPP_FROM configured) to " + e164 + ":\n" + body);
+    Logger.log(
+      "WhatsApp fallback to SMS — TWILIO_WHATSAPP_FROM not configured. To: " + e164,
+    );
+    sendSMS(e164, body);
     return;
   }
 
   var url =
     "https://api.twilio.com/2010-04-01/Accounts/" + sid + "/Messages.json";
-  UrlFetchApp.fetch(url, {
+  var res = UrlFetchApp.fetch(url, {
     method: "post",
     payload: { To: "whatsapp:" + e164, From: from, Body: body },
     headers: {
@@ -324,6 +363,16 @@ function sendWhatsApp(e164, body) {
     },
     muteHttpExceptions: true,
   });
+
+  var result = JSON.parse(res.getContentText());
+  if (
+    result.code ||
+    (typeof result.status === "number" && result.status >= 400)
+  ) {
+    Logger.log("WhatsApp ERROR to " + e164 + ": " + res.getContentText());
+  } else {
+    Logger.log("WhatsApp sent to " + e164 + " — SID: " + result.sid);
+  }
 }
 
 // ── Sends an SMS via Twilio. Falls back to Logger.log if credentials are missing ──
@@ -350,40 +399,53 @@ function sendSMS(e164, body) {
   });
 }
 
-// ── Sends a "tomorrow" WhatsApp reminder at 17:00 the day before each appointment ──
+// ── Sends a "tomorrow" SMS reminder at 17:00 the day before each appointment ──
 function sendTomorrowReminders() {
   var tz = SpreadsheetApp.openById(SPREADSHEET_ID).getSpreadsheetTimeZone();
-  var tomorrowStr = Utilities.formatDate(new Date(Date.now() + 24 * 60 * 60 * 1000), tz, "yyyy-MM-dd");
+  var tomorrowStr = Utilities.formatDate(
+    new Date(Date.now() + 24 * 60 * 60 * 1000),
+    tz,
+    "yyyy-MM-dd",
+  );
 
   var sheet = getOrCreateSheet();
   var rows = sheet.getDataRange().getValues();
 
   for (var i = 1; i < rows.length; i++) {
-    var rowDate   = normalizeDate(rows[i][5], tz);
+    var rowDate = normalizeDate(rows[i][5], tz);
     var rowStatus = rows[i][7];
     if (rowDate !== tomorrowStr || rowStatus === "Cancelled") continue;
 
-    var name        = rows[i][2];
-    var phone       = rows[i][3].toString();
-    var service     = rows[i][4];
-    var time        = normalizeTime(rows[i][6], tz);
+    var name = rows[i][2];
+    var phone = rows[i][3].toString();
+    var service = rows[i][4];
+    var time = normalizeTime(rows[i][6], tz);
     var displayDate = tomorrowStr.split("-").reverse().join("/");
-    var e164        = "+" + normalizePhoneDigits(phone);
+    var e164 = "+" + normalizePhoneDigits(phone);
 
     var msg =
-      "שלום " + name + "! 🌿 תזכורת לתור מחר אצל Shoval Therapy 🌿\n\n" +
-      "תאריך: " + displayDate + "\n" +
-      "שעה: " + time + "\n" +
-      "שירות: " + service + "\n\n" +
+      "שלום " +
+      name +
+      "! 🌿 תזכורת לתור מחר אצל Shoval Therapy 🌿\n\n" +
+      "תאריך: " +
+      displayDate +
+      "\n" +
+      "שעה: " +
+      time +
+      "\n" +
+      "שירות: " +
+      service +
+      "\n\n" +
       "📍 מיקום: סמטת השרון 3, בת ים\nקומה 3, דירה 11\n\n" +
-      POLICY + "\n\n" +
+      POLICY +
+      "\n\n" +
       "לשינויים, ביטולים או פרטים נוספים צרו קשר:\n0535537072";
 
-    sendWhatsApp(e164, msg);
+    sendSMS(e164, msg);
   }
 }
 
-// ── Sends a "today" WhatsApp reminder at 09:00 on the day of each appointment ──
+// ── Sends a "today" SMS reminder at 09:00 on the day of each appointment ──
 function sendTodayReminders() {
   var tz = SpreadsheetApp.openById(SPREADSHEET_ID).getSpreadsheetTimeZone();
   var todayStr = Utilities.formatDate(new Date(), tz, "yyyy-MM-dd");
@@ -392,24 +454,30 @@ function sendTodayReminders() {
   var rows = sheet.getDataRange().getValues();
 
   for (var i = 1; i < rows.length; i++) {
-    var rowDate   = normalizeDate(rows[i][5], tz);
+    var rowDate = normalizeDate(rows[i][5], tz);
     var rowStatus = rows[i][7];
     if (rowDate !== todayStr || rowStatus === "Cancelled") continue;
 
-    var name    = rows[i][2];
-    var phone   = rows[i][3].toString();
+    var name = rows[i][2];
+    var phone = rows[i][3].toString();
     var service = rows[i][4];
-    var time    = normalizeTime(rows[i][6], tz);
-    var e164    = "+" + normalizePhoneDigits(phone);
+    var time = normalizeTime(rows[i][6], tz);
+    var e164 = "+" + normalizePhoneDigits(phone);
 
     var msg =
-      "שלום " + name + "! ☀️ תזכורת — יש לך תור היום אצל Shoval Therapy\n\n" +
-      "שעה: " + time + "\n" +
-      "שירות: " + service + "\n\n" +
+      "שלום " +
+      name +
+      "! ☀️ תזכורת — יש לך תור היום אצל Shoval Therapy\n\n" +
+      "שעה: " +
+      time +
+      "\n" +
+      "שירות: " +
+      service +
+      "\n\n" +
       "📍 מיקום: סמטת השרון 3, בת ים\nקומה 3, דירה 11\n\n" +
       "נתראה היום! 🌿\n0535537072";
 
-    sendWhatsApp(e164, msg);
+    sendSMS(e164, msg);
   }
 }
 
@@ -418,7 +486,11 @@ function setupReminderTrigger() {
   // Remove all existing reminder triggers to avoid duplicates
   ScriptApp.getProjectTriggers().forEach(function (t) {
     var fn = t.getHandlerFunction();
-    if (fn === "sendDailyReminders" || fn === "sendTomorrowReminders" || fn === "sendTodayReminders")
+    if (
+      fn === "sendDailyReminders" ||
+      fn === "sendTomorrowReminders" ||
+      fn === "sendTodayReminders"
+    )
       ScriptApp.deleteTrigger(t);
   });
   // Day-before reminder at 17:00
@@ -433,7 +505,9 @@ function setupReminderTrigger() {
     .everyDays(1)
     .atHour(9)
     .create();
-  Logger.log("Reminder triggers set: sendTomorrowReminders at 17:00, sendTodayReminders at 09:00");
+  Logger.log(
+    "Reminder triggers set: sendTomorrowReminders at 17:00, sendTodayReminders at 09:00",
+  );
 }
 
 function getOrCreateSheet() {
@@ -452,7 +526,7 @@ function getOrCreateSheet() {
       "Time",
       "Status",
       "Duration",
-      "PaymentMethod",
+      "Notes",
     ]);
     sheet.setFrozenRows(1);
 
