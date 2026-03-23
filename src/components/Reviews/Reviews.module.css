@@ -1,0 +1,179 @@
+.section {
+  padding: var(--section-py) 0;
+  background: #F2E7D8;
+  --color-bg: #F2E7D8; /* keeps carousel edge-fades matching section bg */
+  overflow: hidden;
+}
+
+.inner {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 0 var(--space-8);
+}
+
+/* ── Carousel wrap ─────────────────────────────────────────────────── */
+.carouselWrap {
+  margin-top: var(--space-10);
+  margin-left:  calc(-1 * var(--space-8));
+  margin-right: calc(-1 * var(--space-8));
+  overflow: hidden;
+  position: relative;
+  direction: ltr;
+}
+/* Fade edges */
+.carouselWrap::before,
+.carouselWrap::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 80px;
+  z-index: 2;
+  pointer-events: none;
+}
+.carouselWrap::before {
+  left: 0;
+  background: linear-gradient(to right, var(--color-bg), transparent);
+}
+.carouselWrap::after {
+  right: 0;
+  background: linear-gradient(to left, var(--color-bg), transparent);
+}
+
+/* ── Scrollable track ──────────────────────────────────────────────── */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+.track {
+  display: flex;
+  gap: 24px;
+  width: max-content;
+  padding: var(--space-4) var(--space-8) var(--space-6);
+  direction: ltr;
+  animation: marquee 30s linear infinite;
+  -webkit-animation: marquee 30s linear infinite;
+}
+
+.track.paused {
+  animation-play-state: paused;
+  -webkit-animation-play-state: paused;
+}
+
+/* ── Review card ───────────────────────────────────────────────────── */
+.card {
+  flex: 0 0 clamp(280px, 36vw, 360px);
+  direction: rtl;
+  background: var(--color-white);
+  border-radius: var(--radius-xl);
+  padding: var(--space-8) var(--space-8) var(--space-6);
+  box-shadow: var(--shadow-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  position: relative;
+  overflow: hidden;
+  transition: transform var(--transition-slow), box-shadow var(--transition-slow);
+  border: 1px solid rgba(201, 169, 110, 0.15);
+}
+.card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(201,169,110,0.06) 0%, transparent 60%);
+  pointer-events: none;
+}
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg), var(--shadow-gold);
+}
+
+/* ── Quote icon ────────────────────────────────────────────────────── */
+.quoteIcon {
+  font-family: var(--font-display);
+  font-size: 80px;
+  line-height: 0.6;
+  color: var(--color-accent);
+  opacity: 0.35;
+  user-select: none;
+  align-self: flex-start;
+}
+
+/* ── Review text ───────────────────────────────────────────────────── */
+.text {
+  font-family: var(--font-body);
+  font-size: var(--text-md);
+  color: var(--color-text);
+  line-height: var(--leading-normal);
+  flex: 1;
+}
+
+/* ── Footer ─────────────────────────────────────────────────────────── */
+.cardFooter {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-top: var(--space-4);
+  border-top: 1px solid rgba(201, 169, 110, 0.2);
+}
+
+/* ── Stars ───────────────────────────────────────────────────────────── */
+.stars {
+  display: flex;
+  gap: 2px;
+}
+.starFilled {
+  color: var(--color-accent);
+  font-size: var(--text-base);
+}
+.starEmpty {
+  color: var(--color-surface-2);
+  font-size: var(--text-base);
+}
+
+/* ── Reviewer info ──────────────────────────────────────────────────── */
+.reviewer {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.name {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--color-text);
+}
+.treatment {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--color-text-light);
+  font-style: italic;
+}
+
+/* ── Mobile ──────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .section { padding: var(--section-py-mobile) 0; }
+  .inner   { padding: 0 var(--space-4); }
+
+  .carouselWrap {
+    margin-left:  calc(-1 * var(--space-4));
+    margin-right: calc(-1 * var(--space-4));
+  }
+  .carouselWrap::before,
+  .carouselWrap::after { width: 40px; }
+
+  .track {
+    padding: var(--space-3) var(--space-4) var(--space-5);
+    gap: 16px;
+    animation-duration: 55s;
+    -webkit-animation-duration: 55s;
+  }
+
+  .card {
+    flex: 0 0 clamp(260px, 82vw, 320px);
+    padding: var(--space-6);
+  }
+  .text { font-size: var(--text-base); }
+}

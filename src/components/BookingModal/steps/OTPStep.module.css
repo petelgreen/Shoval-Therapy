@@ -1,0 +1,122 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.subtitle {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  font-family: var(--font-body);
+  margin-bottom: var(--space-6);
+  text-align: center;
+}
+
+.phoneHighlight {
+  font-weight: 600;
+  color: var(--color-text);
+  margin-inline-start: var(--space-1);
+}
+
+.sending {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  font-family: var(--font-body);
+  text-align: center;
+  margin: var(--space-8) 0;
+}
+
+.digitRow {
+  display: flex;
+  gap: var(--space-3);
+  justify-content: center;
+  margin-bottom: var(--space-5);
+}
+
+.digitInput {
+  width: 48px;
+  height: 56px;
+  border: 1.5px solid var(--color-surface-2);
+  border-radius: var(--radius-md);
+  font-size: 1.5rem;
+  font-family: var(--font-body);
+  font-weight: 600;
+  color: var(--color-text);
+  background: var(--color-bg);
+  text-align: center;
+  outline: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  caret-color: var(--color-accent);
+}
+
+.digitInput:focus {
+  border-color: var(--color-accent);
+  box-shadow: var(--focus-ring);
+}
+
+.digitInput:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.digitError {
+  border-color: var(--color-error, #b94040);
+}
+
+.digitError:focus {
+  box-shadow: 0 0 0 3px rgba(217, 79, 79, 0.12);
+}
+
+/* Verifying state: pulsing opacity */
+.digitVerifying {
+  animation: pulse 0.9s ease-in-out infinite alternate;
+}
+
+@keyframes pulse {
+  from { opacity: 0.5; }
+  to   { opacity: 1; }
+}
+
+.digitRowVerifying {
+  pointer-events: none;
+}
+
+.errorMsg {
+  font-size: var(--text-xs);
+  color: var(--color-error, #b94040);
+  font-family: var(--font-body);
+  text-align: center;
+  margin-bottom: var(--space-4);
+}
+
+/* Lockout recovery block */
+.lockoutBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-6) var(--space-2);
+  text-align: center;
+}
+
+.lockoutMsg {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  font-family: var(--font-body);
+  line-height: var(--leading-normal);
+  max-width: 280px;
+}
+
+.resendRow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+.countdown {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  font-family: var(--font-body);
+}

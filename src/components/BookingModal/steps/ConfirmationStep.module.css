@@ -1,0 +1,207 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-5);
+  padding-bottom: var(--space-4);
+}
+
+.icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--color-accent), var(--color-accent-dark));
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-gold);
+  animation: confirmPulse 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.checkSvg {
+  width: 36px;
+  height: 36px;
+}
+
+.checkPath {
+  stroke-dasharray: 50;
+  stroke-dashoffset: 50;
+  animation: drawCheck 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.3s forwards;
+}
+
+@keyframes drawCheck {
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes confirmPulse {
+  0%   { transform: scale(0.5); opacity: 0; }
+  60%  { transform: scale(1.12); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Calendar button */
+.calendarBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: linear-gradient(135deg, var(--color-accent), var(--color-accent-dark));
+  color: var(--color-white);
+  border: none;
+  border-radius: var(--radius-full);
+  padding: 13px var(--space-8);
+  font-size: var(--text-base);
+  font-family: var(--font-body);
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  box-shadow: 0 4px 16px rgba(201, 169, 110, 0.35);
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+  width: 100%;
+  justify-content: center;
+}
+
+.calendarBtn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  color: var(--color-text);
+  margin: 0;
+  font-weight: 600;
+}
+
+.sub {
+  font-size: var(--text-base);
+  color: var(--color-text-muted);
+  margin: 0;
+  font-family: var(--font-body);
+}
+
+.summary {
+  width: 100%;
+  background: var(--color-bg);
+  border: 1px solid var(--color-surface-2);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-5);
+  border-bottom: 1px solid var(--color-surface);
+  text-align: start;
+}
+
+.row:last-child {
+  border-bottom: none;
+}
+
+.rowLabel {
+  font-size: var(--text-sm);
+  color: var(--color-text-light);
+  font-family: var(--font-body);
+  font-weight: 500;
+  flex-shrink: 0;
+  min-width: 64px;
+}
+
+.rowValue {
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-weight: 600;
+  text-align: end;
+}
+
+.cancellationNote {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  font-family: var(--font-body);
+  background: var(--color-surface);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-4);
+  border-inline-start: 3px solid var(--color-accent);
+  text-align: start;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+}
+
+.whatsappBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: #25d366;
+  color: white;
+  border-radius: var(--radius-full);
+  padding: var(--space-3) var(--space-6);
+  font-size: var(--text-base);
+  font-family: var(--font-body);
+  font-weight: 600;
+  text-decoration: none;
+  transition: background var(--transition-fast), transform var(--transition-fast);
+}
+
+.whatsappBtn:hover {
+  background: #1ebe5c;
+  transform: translateY(-1px);
+}
+
+.rescheduleLink {
+  font-size: var(--text-sm);
+  color: var(--color-text-light);
+  font-family: var(--font-body);
+  text-decoration: underline;
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.rescheduleLink:hover {
+  color: var(--color-text-muted);
+}
+
+.copyBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: transparent;
+  border: 1.5px solid var(--color-surface-2);
+  color: var(--color-text-muted);
+  border-radius: var(--radius-full);
+  padding: var(--space-2) var(--space-5);
+  font-size: var(--text-sm);
+  font-family: var(--font-body);
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.copyBtn:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.bookingRef {
+  font-size: var(--text-xs);
+  color: var(--color-text-light);
+  font-family: var(--font-body);
+  letter-spacing: 0.02em;
+  opacity: 0.75;
+}

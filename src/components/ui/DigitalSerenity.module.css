@@ -1,0 +1,108 @@
+.wrapper {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, #0f172a 0%, #000000 50%, #1e293b 100%);
+  color: #f1f5f9;
+}
+
+.svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.corner {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(203, 213, 225, 0.2);
+  opacity: 0;
+  animation: wordAppear 1s ease-out forwards;
+}
+.corner--tl { top: 16px; left: 16px; animation-delay: 4s; }
+.corner--tr { top: 16px; right: 16px; animation-delay: 4.2s; }
+.corner--bl { bottom: 16px; left: 16px; animation-delay: 4.4s; }
+.corner--br { bottom: 16px; right: 16px; animation-delay: 4.6s; }
+
+.cornerDot {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: #cbd5e1;
+  opacity: 0.3;
+  border-radius: 50%;
+}
+.corner--tl .cornerDot { top: 0; left: 0; }
+.corner--tr .cornerDot { top: 0; right: 0; }
+.corner--bl .cornerDot { bottom: 0; left: 0; }
+.corner--br .cornerDot { bottom: 0; right: 0; }
+
+.float {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  background: #cbd5e1;
+  border-radius: 50%;
+  opacity: 0;
+  animation: floatAnim 4s ease-in-out infinite;
+  animation-play-state: paused;
+}
+
+.mouseGradient {
+  position: fixed;
+  pointer-events: none;
+  border-radius: 9999px;
+  width: 384px;
+  height: 384px;
+  background-image: radial-gradient(circle, rgba(156, 163, 175, 0.05), rgba(107, 114, 128, 0.05), transparent 70%);
+  transform: translate(-50%, -50%);
+  filter: blur(48px);
+  will-change: left, top, opacity;
+  transition: left 70ms linear, top 70ms linear, opacity 300ms ease-out;
+  z-index: 0;
+}
+
+.ripple {
+  position: fixed;
+  width: 4px;
+  height: 4px;
+  background: rgba(203, 213, 225, 0.6);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  animation: pulseGlow 1s ease-out forwards;
+  z-index: 9999;
+}
+
+.children {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes wordAppear {
+  0%   { opacity: 0; transform: translateY(30px) scale(0.8); filter: blur(10px); }
+  50%  { opacity: 0.8; transform: translateY(10px) scale(0.95); filter: blur(2px); }
+  100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+
+@keyframes gridDraw {
+  0%   { stroke-dashoffset: 1000; opacity: 0; }
+  50%  { opacity: 0.3; }
+  100% { stroke-dashoffset: 0; opacity: 0.15; }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { opacity: 0.1; transform: scale(1) translate(-50%, -50%); }
+  50%       { opacity: 0.3; transform: scale(1.1) translate(-50%, -50%); }
+}
+
+@keyframes floatAnim {
+  0%, 100% { transform: translateY(0) translateX(0); opacity: 0.2; }
+  25%       { transform: translateY(-10px) translateX(5px); opacity: 0.6; }
+  50%       { transform: translateY(-5px) translateX(-3px); opacity: 0.4; }
+  75%       { transform: translateY(-15px) translateX(7px); opacity: 0.8; }
+}
+
+/* grid-line and detail-dot are injected via <style> in the component */

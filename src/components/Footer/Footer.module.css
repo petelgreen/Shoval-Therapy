@@ -1,0 +1,69 @@
+.footer {
+  background: var(--color-text);
+  padding: var(--space-12) 0 var(--space-8);
+}
+
+.inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  text-align: center;
+}
+
+.logo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.logoHe {
+  font-family: var(--font-heading);
+  font-size: 26px;
+  font-weight: 400;
+  color: var(--color-surface);
+}
+
+.logoEn {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 13px;
+  color: var(--color-accent);
+  letter-spacing: 0.1em;
+}
+
+.tagline {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--color-text-light);
+}
+
+.links {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.links a {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--color-surface-2);
+  transition: color var(--transition-fast);
+  padding: var(--space-2) 0;
+}
+
+.links a:hover {
+  color: var(--color-accent);
+}
+
+.dot {
+  color: var(--color-text-light);
+}
+
+.copy {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--color-text-light);
+  margin-top: var(--space-4);
+}

@@ -1,0 +1,230 @@
+.nav {
+  position: fixed;
+  top: 0;
+  inset-inline-start: 0;
+  inset-inline-end: 0;
+  z-index: var(--z-nav);
+  height: var(--nav-height);
+  transition: background var(--transition-slow), box-shadow var(--transition-slow);
+}
+
+.nav.scrolled {
+  background: rgba(245, 239, 230, 0.95);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 1px 0 rgba(201, 169, 110, 0.25), 0 4px 20px rgba(61, 43, 31, 0.06);
+}
+
+.inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 100%;
+}
+
+/* Logo */
+.logo {
+  display: flex;
+  align-items: center;
+  line-height: 1;
+  transition: opacity var(--transition-base);
+}
+
+.logo:hover {
+  opacity: 0.8;
+}
+
+.logoImg {
+  height: 52px;
+  width: auto;
+  object-fit: contain;
+  transition: opacity var(--transition-base);
+}
+
+@media (max-width: 767px) {
+  .logoImg { height: 42px; }
+}
+
+/* Desktop nav links */
+.links {
+  display: none;
+  list-style: none;
+  gap: var(--space-8);
+  align-items: center;
+}
+
+@media (min-width: 768px) {
+  .links { display: flex; }
+}
+
+.link {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 400;
+  color: var(--color-text-muted);
+  transition: color var(--transition-fast);
+  position: relative;
+}
+
+.link::after {
+  content: '';
+  position: absolute;
+  bottom: -3px;
+  inset-inline-start: 0;
+  inset-inline-end: 0;
+  height: 1px;
+  background: var(--color-accent);
+  transform: scaleX(0);
+  transition: transform var(--transition-base);
+  transform-origin: center;
+}
+
+.link:hover {
+  color: var(--color-text);
+}
+
+.link:hover::after {
+  transform: scaleX(1);
+}
+
+/* CTA button area */
+.actions {
+  display: none;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+@media (min-width: 768px) {
+  .actions { display: flex; }
+}
+
+/* Language toggle */
+.langToggle {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-text-muted);
+  background: none;
+  border: 1px solid var(--color-accent);
+  border-radius: 4px;
+  padding: 3px 9px;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.langToggle:hover {
+  color: var(--color-text);
+  background: rgba(201, 169, 110, 0.12);
+}
+
+/* Mobile actions (lang toggle + hamburger) */
+.mobileActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+@media (min-width: 768px) {
+  .mobileActions { display: none; }
+}
+
+/* Hamburger */
+.hamburger {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  width: 36px;
+  height: 36px;
+  cursor: pointer;
+  padding: 4px;
+  background: none;
+  border: none;
+}
+
+@media (min-width: 768px) {
+  .hamburger { display: none; }
+}
+
+.bar {
+  display: block;
+  width: 100%;
+  height: 1.5px;
+  background: var(--color-text);
+  border-radius: 2px;
+  transition: transform var(--transition-base), opacity var(--transition-base);
+  transform-origin: center;
+}
+
+.hamburger.open .bar:nth-child(1) {
+  transform: translateY(6.5px) rotate(45deg);
+}
+
+.hamburger.open .bar:nth-child(2) {
+  opacity: 0;
+  transform: scaleX(0);
+}
+
+.hamburger.open .bar:nth-child(3) {
+  transform: translateY(-6.5px) rotate(-45deg);
+}
+
+/* Mobile overlay menu */
+.mobileMenu {
+  position: fixed;
+  inset: 0;
+  background: var(--color-bg);
+  z-index: var(--z-overlay);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-8);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition-slow);
+}
+
+.mobileMenu.open {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.mobileLink {
+  font-family: var(--font-heading);
+  font-size: 34px;
+  font-weight: 400;
+  color: var(--color-text);
+  transition: color var(--transition-fast);
+}
+
+.mobileLink:hover {
+  color: var(--color-accent);
+}
+
+.mobileClose {
+  position: absolute;
+  top: var(--space-6);
+  inset-inline-start: var(--space-6);
+  font-size: 28px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  background: none;
+  border: none;
+  line-height: 1;
+}
+
+.mobileLogoImg {
+  height: 64px;
+  width: auto;
+  object-fit: contain;
+  margin-bottom: var(--space-2);
+}
+
+.mobileDivider {
+  width: 40px;
+  height: 1px;
+  background: var(--color-accent);
+  opacity: 0.5;
+}

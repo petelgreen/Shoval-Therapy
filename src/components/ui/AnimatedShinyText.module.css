@@ -1,0 +1,31 @@
+.wrapper {
+  display: inline-block;
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: 1.8;
+  color: var(--color-text-muted);
+}
+
+.shiny {
+  display: inline;
+  line-height: inherit;
+  background-image: linear-gradient(
+    90deg,
+    #6B4F3A 0%,
+    #6B4F3A 40%,
+    #C9A96E 50%,
+    #6B4F3A 60%,
+    #6B4F3A 100%
+  );
+  background-size: 300% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: shinyText 3s ease-in-out infinite;
+}
+
+@keyframes shinyText {
+  0%   { background-position: 100% 0; }
+  100% { background-position: -200% 0; }
+}
