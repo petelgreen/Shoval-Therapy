@@ -203,7 +203,7 @@ export default function DateTimeStep({ lang, service, date, time, onDateChange, 
                       ].filter(Boolean).join(' ')}
                       onClick={() => handleHourClick(h)}
                     >
-                      {hourNum}:00
+                      {hourNum}
                     </button>
                   );
                 })}
