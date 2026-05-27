@@ -222,11 +222,6 @@ export default function DateTimeStep({ lang, service, date, time, onDateChange, 
                   }
                   aria-live="polite"
                 >
-                  <span className={styles.minuteLabel}>
-                    {lang === 'en'
-                      ? `Select time within hour ${parseInt(selectedHour, 10)}`
-                      : `בחרי זמן בתוך השעה ${parseInt(selectedHour, 10)}`}
-                  </span>
                   <div className={styles.minuteGrid}>
                     {minutesForHour(selectedHour).map((m) => {
                       const slotKey = `${selectedHour}:${m}`;
