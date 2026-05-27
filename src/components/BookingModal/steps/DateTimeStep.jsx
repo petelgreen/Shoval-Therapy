@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { parseDate, today, getLocalTimeZone } from '@internationalized/date';
 import { CalendarIcon } from 'lucide-react';
 import { AVAILABLE_SLOTS, BOOKING_MODAL } from '../../../data/content';
@@ -39,6 +39,7 @@ export default function DateTimeStep({ lang, service, date, time, onDateChange, 
   const [extraSlots, setExtraSlots] = useState([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [selectedHour, setSelectedHour] = useState(() => time ? time.split(':')[0] : null);
+  const minuteSectionRef = useRef(null);
 
   const durationMins = service?.durationMins ?? 60;
   const availableSlots = getFilteredSlots(durationMins);
@@ -49,6 +50,13 @@ export default function DateTimeStep({ lang, service, date, time, onDateChange, 
   useEffect(() => {
     setSelectedHour(null);
   }, [date]);
+
+  // Scroll minute section into view after hour selection
+  useEffect(() => {
+    if (selectedHour && minuteSectionRef.current) {
+      minuteSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [selectedHour]);
 
   function tryNextDay() {
     if (!date) return;
@@ -89,11 +97,18 @@ export default function DateTimeStep({ lang, service, date, time, onDateChange, 
   const allSlots = getDayAllowedSlots(date, [...new Set([...availableSlots, ...validExtra])].sort());
   const freeSlots = allSlots.filter((s) => !bookedSlots.includes(s));
 
+  // Derived from allSlots so duration + day constraints are already applied
   const uniqueHours = [...new Set(allSlots.map((s) => s.split(':')[0]))];
   const minutesForHour = (h) => allSlots.filter((s) => s.split(':')[0] === h).map((s) => s.split(':')[1]);
   const freeMinutesForHour = (h) => freeSlots.filter((s) => s.split(':')[0] === h).map((s) => s.split(':')[1]);
 
   function handleHourClick(h) {
+    // Second click on same hour deselects
+    if (selectedHour === h) {
+      setSelectedHour(null);
+      onTimeChange('');
+      return;
+    }
     setSelectedHour(h);
     if (time && time.split(':')[0] !== h) onTimeChange('');
   }
@@ -165,15 +180,22 @@ export default function DateTimeStep({ lang, service, date, time, onDateChange, 
           ) : (
             <>
               {/* Step 1: pick hour */}
-              <div className={styles.slotGrid}>
+              <div className={styles.slotGrid} role="group" aria-label={lang === 'en' ? 'Select hour' : 'בחרי שעה'}>
                 {uniqueHours.map((h) => {
                   const isDisabled = freeMinutesForHour(h).length === 0;
                   const isSelected = selectedHour === h;
+                  const hourNum = parseInt(h, 10);
                   return (
                     <button
                       key={h}
                       type="button"
                       disabled={isDisabled}
+                      aria-pressed={isSelected}
+                      aria-label={
+                        lang === 'en'
+                          ? `${hourNum}:00${isDisabled ? ', fully booked' : ''}`
+                          : `שעה ${hourNum}${isDisabled ? ', מלא' : ''}`
+                      }
                       className={[
                         styles.slot,
                         isSelected ? styles.slotSelected : '',
@@ -181,7 +203,7 @@ export default function DateTimeStep({ lang, service, date, time, onDateChange, 
                       ].filter(Boolean).join(' ')}
                       onClick={() => handleHourClick(h)}
                     >
-                      {parseInt(h, 10)}:__
+                      {hourNum}:00
                     </button>
                   );
                 })}
@@ -189,22 +211,39 @@ export default function DateTimeStep({ lang, service, date, time, onDateChange, 
 
               {/* Step 2: pick minute */}
               {selectedHour && (
-                <div className={styles.minuteSection}>
+                <div
+                  className={styles.minuteSection}
+                  ref={minuteSectionRef}
+                  role="region"
+                  aria-label={
+                    lang === 'en'
+                      ? `Minutes for ${parseInt(selectedHour, 10)}`
+                      : `דקות לשעה ${parseInt(selectedHour, 10)}`
+                  }
+                  aria-live="polite"
+                >
                   <span className={styles.minuteLabel}>
                     {lang === 'en'
-                      ? `Choose time for ${parseInt(selectedHour, 10)}:`
-                      : `בחרי זמן לשעה ${parseInt(selectedHour, 10)}:`}
+                      ? `Select time within hour ${parseInt(selectedHour, 10)}`
+                      : `בחרי זמן בתוך השעה ${parseInt(selectedHour, 10)}`}
                   </span>
                   <div className={styles.minuteGrid}>
                     {minutesForHour(selectedHour).map((m) => {
                       const slotKey = `${selectedHour}:${m}`;
                       const isFree = freeSlots.includes(slotKey);
                       const isSelected = time === slotKey;
+                      const hourNum = parseInt(selectedHour, 10);
                       return (
                         <button
                           key={m}
                           type="button"
                           disabled={!isFree}
+                          aria-pressed={isSelected}
+                          aria-label={
+                            lang === 'en'
+                              ? `${hourNum}:${m}${!isFree ? ', booked' : ''}`
+                              : `${hourNum}:${m}${!isFree ? ', תפוס' : ''}`
+                          }
                           className={[
                             styles.slot,
                             isSelected ? styles.slotSelected : '',
@@ -212,7 +251,7 @@ export default function DateTimeStep({ lang, service, date, time, onDateChange, 
                           ].filter(Boolean).join(' ')}
                           onClick={() => isFree && handleMinuteClick(m)}
                         >
-                          {parseInt(selectedHour, 10)}:{m}
+                          {hourNum}:{m}
                         </button>
                       );
                     })}
