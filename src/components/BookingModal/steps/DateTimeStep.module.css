@@ -171,3 +171,24 @@
   text-decoration: line-through;
   transform: none;
 }
+
+.minuteSection {
+  margin-top: var(--space-5);
+  padding-top: var(--space-4);
+  border-top: 1.5px solid var(--color-surface-2);
+}
+
+.minuteLabel {
+  display: block;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-accent-dark);
+  font-family: var(--font-body);
+  margin-bottom: var(--space-3);
+}
+
+.minuteGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-2);
+}

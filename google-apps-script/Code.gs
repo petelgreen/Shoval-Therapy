@@ -64,21 +64,16 @@ function doGet(e) {
   }
 }
 
-var ALL_SLOTS = [
-  "09:00",
-  "10:00",
-  "11:00",
-  "12:00",
-  "13:00",
-  "14:00",
-  "15:00",
-  "16:00",
-  "17:00",
-  "18:00",
-  "19:00",
-  "20:00",
-  "21:00",
-];
+// 08:00–21:45 in 15-minute increments
+var ALL_SLOTS = (function () {
+  var slots = [];
+  for (var m = 8 * 60; m <= 21 * 60 + 45; m += 15) {
+    var h = Math.floor(m / 60);
+    var mm = m % 60;
+    slots.push((h < 10 ? "0" : "") + h + ":" + (mm < 10 ? "0" : "") + mm);
+  }
+  return slots;
+})();
 var BREAK_MINUTES = 15;
 
 function normalizeDate(val, tz) {
@@ -331,6 +326,37 @@ function createBooking(data) {
     "\n\n" +
     "Shoval Therapy 🌿\n0535537072";
   sendWhatsApp(e164, confirmMsg);
+
+  // Notify owner of new booking via email (silent fail if no permission)
+  try {
+    MailApp.sendEmail({
+      to: "shoval98710@gmail.com",
+      subject: "הזמנה חדשה — " + data.name + " (" + displayDate + " " + data.time + ")",
+      body:
+        "הזמנה חדשה התקבלה:\n\n" +
+        "שם: " + data.name + "\n" +
+        "טלפון: " + data.phone + "\n" +
+        "שירות: " + data.service + "\n" +
+        "תאריך: " + displayDate + "\n" +
+        "שעה: " + data.time + "\n" +
+        (data.notes ? "הערות: " + data.notes + "\n" : "") +
+        "\nמספר הזמנה: " + bookingId
+    });
+  } catch (mailErr) {
+    Logger.log("Email notification failed, falling back to SMS: " + mailErr.message);
+    var ownerE164 = "+972535537072";
+    var ownerMsg =
+      "📅 הזמנה חדשה!\n\n" +
+      "שם: " + data.name + "\n" +
+      "טלפון: " + data.phone + "\n" +
+      "שירות: " + data.service + "\n" +
+      "תאריך: " + displayDate + "\n" +
+      "שעה: " + data.time + "\n" +
+      "מספר הזמנה: " + bookingId;
+    try { sendSMS(ownerE164, ownerMsg); } catch (smsErr) {
+      Logger.log("SMS fallback also failed: " + smsErr.message);
+    }
+  }
 
   return bookingId;
 }

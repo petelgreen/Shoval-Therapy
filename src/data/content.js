@@ -354,22 +354,16 @@ export const REVIEWS = {
   ],
 };
 
-// Available time slots (Sunday–Friday, 09:00–19:00, last slot allows ≤20:00 end)
-export const AVAILABLE_SLOTS = [
-  "09:00",
-  "10:00",
-  "11:00",
-  "12:00",
-  "13:00",
-  "14:00",
-  "15:00",
-  "16:00",
-  "17:00",
-  "18:00",
-  "19:00",
-  "20:00",
-  "21:00",
-];
+// Available time slots: 08:00–21:45 in 15-minute increments
+export const AVAILABLE_SLOTS = Array.from(
+  { length: Math.floor((21 * 60 + 45 - 8 * 60) / 15) + 1 },
+  (_, i) => {
+    const mins = 8 * 60 + i * 15;
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+  }
+);
 
 export const BOOKING_MODAL = {
   steps: [

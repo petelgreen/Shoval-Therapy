@@ -20,35 +20,35 @@ import styles from './DateTimeStep.module.css';
 function timeToMins(t) { const [h, m] = t.split(':').map(Number); return h * 60 + m; }
 
 function getFilteredSlots(durationMins) {
-  return AVAILABLE_SLOTS.filter((slot) => {
-    return timeToMins(slot) + durationMins <= 22 * 60;
-  });
+  return AVAILABLE_SLOTS.filter((slot) => timeToMins(slot) + durationMins <= 22 * 60);
 }
 
 function getDayAllowedSlots(dateStr, slots) {
   if (!dateStr) return slots;
-  const day = new Date(dateStr + 'T00:00:00').getDay(); // 5=Fri, 6=Sat
+  const day = new Date(dateStr + 'T00:00:00').getDay();
   if (day === 5) return slots.filter((s) => timeToMins(s) <= timeToMins('14:00'));
   if (day === 6) return slots.filter((s) => timeToMins(s) >= timeToMins('19:00'));
   return slots;
 }
 
-
-function isDateUnavailable() {
-  return false;
-}
+function isDateUnavailable() { return false; }
 
 export default function DateTimeStep({ lang, service, date, time, onDateChange, onTimeChange, onNext, onBack }) {
   const t = BOOKING_MODAL;
   const [bookedSlots, setBookedSlots] = useState([]);
   const [extraSlots, setExtraSlots] = useState([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
+  const [selectedHour, setSelectedHour] = useState(() => time ? time.split(':')[0] : null);
 
   const durationMins = service?.durationMins ?? 60;
   const availableSlots = getFilteredSlots(durationMins);
   const minDate = today(getLocalTimeZone()).add({ days: 1 });
   const maxDate = today(getLocalTimeZone()).add({ days: 14 });
   const calendarValue = date ? parseDate(date) : null;
+
+  useEffect(() => {
+    setSelectedHour(null);
+  }, [date]);
 
   function tryNextDay() {
     if (!date) return;
@@ -60,7 +60,6 @@ export default function DateTimeStep({ lang, service, date, time, onDateChange, 
   useEffect(() => {
     setBookedSlots([]);
     setExtraSlots([]);
-
     if (!date) return;
 
     const url = import.meta.env.VITE_APPS_SCRIPT_URL;
@@ -89,6 +88,20 @@ export default function DateTimeStep({ lang, service, date, time, onDateChange, 
   const validExtra = extraSlots.filter((s) => timeToMins(s) + durationMins <= 20 * 60);
   const allSlots = getDayAllowedSlots(date, [...new Set([...availableSlots, ...validExtra])].sort());
   const freeSlots = allSlots.filter((s) => !bookedSlots.includes(s));
+
+  const uniqueHours = [...new Set(allSlots.map((s) => s.split(':')[0]))];
+  const minutesForHour = (h) => allSlots.filter((s) => s.split(':')[0] === h).map((s) => s.split(':')[1]);
+  const freeMinutesForHour = (h) => freeSlots.filter((s) => s.split(':')[0] === h).map((s) => s.split(':')[1]);
+
+  function handleHourClick(h) {
+    setSelectedHour(h);
+    if (time && time.split(':')[0] !== h) onTimeChange('');
+  }
+
+  function handleMinuteClick(m) {
+    onTimeChange(`${selectedHour}:${m}`);
+  }
+
   const canNext = date && time && !loadingSlots;
 
   return (
@@ -97,7 +110,6 @@ export default function DateTimeStep({ lang, service, date, time, onDateChange, 
         {lang === 'en' ? t.steps[1].labelEn : t.steps[1].labelHe}
       </h2>
 
-      {/* Date picker */}
       <div className={styles.field}>
         <label className={styles.label}>
           {lang === 'en' ? t.dateLabelEn : t.dateLabelHe}
@@ -131,7 +143,6 @@ export default function DateTimeStep({ lang, service, date, time, onDateChange, 
         </DatePicker>
       </div>
 
-      {/* Time slots */}
       {date && (
         <div className={styles.field}>
           <label className={styles.label}>
@@ -140,44 +151,75 @@ export default function DateTimeStep({ lang, service, date, time, onDateChange, 
 
           {loadingSlots ? (
             <div className={styles.slotGrid}>
-              {Array.from({ length: 6 }).map((_, i) => (
+              {Array.from({ length: 8 }).map((_, i) => (
                 <div key={i} className={styles.slotSkeleton} />
               ))}
             </div>
           ) : freeSlots.length === 0 ? (
             <div className={styles.noSlots}>
               <p>{lang === 'en' ? t.noSlotsEn : t.noSlotsHe}</p>
-              <button
-                type="button"
-                className={styles.nextDayBtn}
-                onClick={tryNextDay}
-              >
+              <button type="button" className={styles.nextDayBtn} onClick={tryNextDay}>
                 {lang === 'en' ? 'Try next available day →' : 'נסי את היום הבא →'}
               </button>
             </div>
           ) : (
-            <div className={styles.slotGrid}>
-              {allSlots.map((slot) => {
-                const isBooked = bookedSlots.includes(slot);
-                const isUnavailable = !freeSlots.includes(slot);
-                const isSelected = time === slot;
-                return (
-                  <button
-                    key={slot}
-                    type="button"
-                    disabled={isUnavailable}
-                    className={[
-                      styles.slot,
-                      isSelected ? styles.slotSelected : '',
-                      isBooked ? styles.slotBooked : '',
-                    ].filter(Boolean).join(' ')}
-                    onClick={() => !isUnavailable && onTimeChange(slot)}
-                  >
-                    {slot}
-                  </button>
-                );
-              })}
-            </div>
+            <>
+              {/* Step 1: pick hour */}
+              <div className={styles.slotGrid}>
+                {uniqueHours.map((h) => {
+                  const isDisabled = freeMinutesForHour(h).length === 0;
+                  const isSelected = selectedHour === h;
+                  return (
+                    <button
+                      key={h}
+                      type="button"
+                      disabled={isDisabled}
+                      className={[
+                        styles.slot,
+                        isSelected ? styles.slotSelected : '',
+                        isDisabled ? styles.slotBooked : '',
+                      ].filter(Boolean).join(' ')}
+                      onClick={() => handleHourClick(h)}
+                    >
+                      {parseInt(h, 10)}:__
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Step 2: pick minute */}
+              {selectedHour && (
+                <div className={styles.minuteSection}>
+                  <span className={styles.minuteLabel}>
+                    {lang === 'en'
+                      ? `Choose time for ${parseInt(selectedHour, 10)}:`
+                      : `בחרי זמן לשעה ${parseInt(selectedHour, 10)}:`}
+                  </span>
+                  <div className={styles.minuteGrid}>
+                    {minutesForHour(selectedHour).map((m) => {
+                      const slotKey = `${selectedHour}:${m}`;
+                      const isFree = freeSlots.includes(slotKey);
+                      const isSelected = time === slotKey;
+                      return (
+                        <button
+                          key={m}
+                          type="button"
+                          disabled={!isFree}
+                          className={[
+                            styles.slot,
+                            isSelected ? styles.slotSelected : '',
+                            !isFree ? styles.slotBooked : '',
+                          ].filter(Boolean).join(' ')}
+                          onClick={() => isFree && handleMinuteClick(m)}
+                        >
+                          {parseInt(selectedHour, 10)}:{m}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
