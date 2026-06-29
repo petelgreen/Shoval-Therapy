@@ -734,6 +734,42 @@ function respond(data) {
   );
 }
 
+// ── Run this to add example rows to BlockedSlots sheet ──
+function addBlockedSlotsExamples() {
+  var sheet = getOrCreateBlockedSlotsSheet();
+
+  // Remove old placeholder row if it's still the example stub from sheet creation
+  var lastRow = sheet.getLastRow();
+  if (lastRow >= 2) {
+    var firstDataRow = sheet.getRange(2, 1, 1, 4).getValues()[0];
+    if (firstDataRow[0].toString() === "2026-01-01") {
+      sheet.deleteRow(2);
+    }
+  }
+
+  var examples = [
+    // Date          Start    End      Reason
+    ["", "", "", "— דוגמאות לשימוש (ניתן למחוק שורות אלה) —"],
+    ["2026-01-01", "09:00", "13:00", "חסימת טווח שעות (9 בבוקר עד 13:00)"],
+    ["2026-01-02", "14:00", "18:00", "חסימת טווח שעות (14:00 עד 18:00)"],
+    ["2026-01-03", "", "12:00",      "חסימה מתחילת היום עד 12:00"],
+    ["2026-01-04", "",  "",          "חסימת יום שלם (שתי העמודות ריקות)"],
+  ];
+
+  for (var i = 0; i < examples.length; i++) {
+    sheet.appendRow(examples[i]);
+  }
+
+  // Style the header/comment row (first example row)
+  var commentRowIndex = sheet.getLastRow() - examples.length + 1;
+  sheet.getRange(commentRowIndex, 1, 1, 4)
+    .setFontColor("#888888")
+    .setFontStyle("italic")
+    .setBackground("#F5F5F5");
+
+  Logger.log("נוספו " + (examples.length - 1) + " שורות דוגמה לגיליון BlockedSlots");
+}
+
 // ── Run this ONCE to migrate BlockedSlots sheet: Time → Start Time + End Time ──
 function migrateBlockedSlotsSheet() {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
