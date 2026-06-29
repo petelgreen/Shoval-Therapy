@@ -59,6 +59,10 @@ function doGet(e) {
       return respond(verifyOTP(params.phone, params.code));
     }
 
+    if (params.action === "version") {
+      return respond({ version: "v2-range-blocking" });
+    }
+
     return respond({ status: "ok" });
   } catch (err) {
     return respond({ error: err.message });
@@ -163,8 +167,9 @@ function getBookedSlots(date, clientDuration) {
     }
   }
 
-  // 2. Ranges from manually blocked slots
-  // Columns: A=Date, B=Start Time, C=End Time, D=Reason
+  var bookedSlots = [];
+
+  // 2. Manually blocked slots/ranges — Columns: A=Date, B=Start Time, C=End Time, D=Reason
   var blockedSheet = getOrCreateBlockedSlotsSheet();
   var blockedRows = blockedSheet.getDataRange().getValues();
   var bTz = Session.getScriptTimeZone();
@@ -172,22 +177,32 @@ function getBookedSlots(date, clientDuration) {
     var bDate = normalizeDate(blockedRows[j][0], bTz);
     var bStartTime = normalizeTime(blockedRows[j][1], bTz);
     var bEndTime = normalizeTime(blockedRows[j][2], bTz);
+    Logger.log("blocked row " + j + ": date=" + bDate + " start=" + bStartTime + " end=" + bEndTime + " (checking against " + date + ")");
     if (bDate !== date) continue;
 
-    if (!bStartTime) {
-      // No start time = block whole day
+    if (!bStartTime && !bEndTime) {
+      // Both empty → block whole day
       return { bookedSlots: ALL_SLOTS.slice(), extraSlots: [] };
     }
-    var bStart = timeToMins(bStartTime);
-    // If no end time, treat as a single 15-min slot
+    // "Until HH:MM" — no Start Time, has End Time → block from first slot until End Time
+    var bStart = bStartTime ? timeToMins(bStartTime) : timeToMins(ALL_SLOTS[0]);
+    // No End Time → single 15-min slot; otherwise use End Time
     var bEnd = bEndTime ? timeToMins(bEndTime) : bStart + 15;
+
+    // Directly block every 15-min slot within [bStart, bEnd)
+    for (var bs = 0; bs < ALL_SLOTS.length; bs++) {
+      var bSlotMins = timeToMins(ALL_SLOTS[bs]);
+      if (bSlotMins >= bStart && bSlotMins < bEnd) {
+        if (bookedSlots.indexOf(ALL_SLOTS[bs]) === -1) bookedSlots.push(ALL_SLOTS[bs]);
+      }
+    }
+    // Register range so slots BEFORE it whose duration runs into it are caught in step 3
     unavailableRanges.push({ start: bStart, end: bEnd });
   }
 
-  // 3. For each slot, block it if placing a clientDuration booking there (plus break)
-  //    would overlap any unavailable range.
-  var bookedSlots = [];
+  // 3. Block slots whose clientDuration booking (plus break) would overlap any unavailable range
   for (var s = 0; s < ALL_SLOTS.length; s++) {
+    if (bookedSlots.indexOf(ALL_SLOTS[s]) !== -1) continue;
     var slotMins = timeToMins(ALL_SLOTS[s]);
     var slotEndMins = slotMins + clientDuration + BREAK_MINUTES;
     for (var r = 0; r < unavailableRanges.length; r++) {
@@ -750,6 +765,28 @@ function migrateBlockedSlotsSheet() {
   }
 
   Logger.log("Migration done — BlockedSlots now has: Date | Start Time | End Time | Reason");
+}
+
+// ── Run this to verify the new code is deployed and see what gets blocked ──
+function debugBlockedSlots() {
+  // Change this date to whatever you're testing
+  var TEST_DATE = "2026-06-30";
+
+  var sheet = getOrCreateBlockedSlotsSheet();
+  var rows = sheet.getDataRange().getValues();
+  var tz = Session.getScriptTimeZone();
+
+  Logger.log("=== BlockedSlots sheet has " + (rows.length - 1) + " data rows ===");
+  for (var j = 1; j < rows.length; j++) {
+    var d = normalizeDate(rows[j][0], tz);
+    var s = normalizeTime(rows[j][1], tz);
+    var e = normalizeTime(rows[j][2], tz);
+    Logger.log("Row " + j + ": date=" + d + " | start=" + s + " | end=" + e);
+  }
+
+  var result = getBookedSlots(TEST_DATE, 90);
+  Logger.log("=== Blocked slots for " + TEST_DATE + " (90min service) ===");
+  Logger.log(result.bookedSlots.join(", "));
 }
 
 // ── Run this function directly in the Apps Script editor to debug Twilio ──
