@@ -76,7 +76,7 @@ export default function DateTimeStep({ lang, service, date, time, onDateChange, 
     const controller = new AbortController();
     setLoadingSlots(true);
 
-    fetch(`${url}?action=checkSlots&date=${date}`, { signal: controller.signal })
+    fetch(`${url}?action=checkSlots&date=${date}&duration=${durationMins}`, { signal: controller.signal })
       .then((r) => r.json())
       .then((data) => {
         setBookedSlots(data.bookedSlots ?? []);

@@ -42,7 +42,8 @@ function doGet(e) {
     var params = e && e.parameter ? e.parameter : {};
 
     if (params.action === "checkSlots" && params.date) {
-      return respond(getBookedSlots(params.date));
+      var clientDuration = parseInt(params.duration) || 60;
+      return respond(getBookedSlots(params.date, clientDuration));
     }
 
     if (params.action === "createBooking") {
@@ -116,127 +117,114 @@ function isTooFarAhead(dateStr) {
   return diffDays > MAX_ADVANCE_DAYS;
 }
 
-function getBookedSlots(date) {
+// Returns true if interval [aStart, aEnd) overlaps [bStart, bEnd)
+function overlaps(aStart, aEnd, bStart, bEnd) {
+  return aStart < bEnd && aEnd > bStart;
+}
+
+function getBookedSlots(date, clientDuration) {
+  clientDuration = clientDuration || 60;
+
   if (isTooFarAhead(date)) {
     return { bookedSlots: ALL_SLOTS.slice(), extraSlots: [] };
   }
 
-  var bookedSlots = [];
+  // Collect all unavailable ranges for this day as {start, end} in minutes.
+  // Booking ranges already include BREAK_MINUTES so the next booking can start right after.
+  var unavailableRanges = [];
   var extraSlots = [];
 
+  // 1. Ranges from existing bookings
   var bookingSheet = getOrCreateSheet();
   var lastRow = bookingSheet.getLastRow();
-
-  // Force date (col F=6) and time (col G=7) to known display formats so
-  // getDisplayValues() always returns "2026-03-23" and "09:00" regardless of
-  // how cells were stored or what timezone the spreadsheet uses.
   if (lastRow > 1) {
     bookingSheet.getRange(2, 6, lastRow - 1, 1).setNumberFormat("yyyy-MM-dd");
     bookingSheet.getRange(2, 7, lastRow - 1, 1).setNumberFormat("HH:mm");
   }
-
   var bookingRows = bookingSheet.getDataRange().getDisplayValues();
-  var ranges = [];
-  Logger.log(
-    "checkSlots v5 date=" + date + " rows=" + (bookingRows.length - 1),
-  );
 
   for (var i = 1; i < bookingRows.length; i++) {
-    var rowDate = bookingRows[i][5]; // "2026-03-23" — no timezone math needed
-    var rowTimeStr = bookingRows[i][6]; // "09:00"
+    var rowDate = bookingRows[i][5];
+    var rowTimeStr = bookingRows[i][6];
     var rowStatus = bookingRows[i][7];
-    var rowDuration = parseInt(bookingRows[i][8]) || 60; // Column I: Duration
-    Logger.log(
-      "row " +
-        i +
-        ": rowDate=" +
-        rowDate +
-        " rowTime=" +
-        rowTimeStr +
-        " rowStatus=" +
-        rowStatus,
-    );
-
+    var rowDuration = parseInt(bookingRows[i][8]) || 60;
     if (rowDate !== date || rowStatus === "Cancelled") continue;
 
     var startMins = timeToMins(rowTimeStr);
     var endWithBreak = startMins + rowDuration + BREAK_MINUTES;
-    ranges.push({ start: startMins, end: endWithBreak });
+    unavailableRanges.push({ start: startMins, end: endWithBreak });
 
-    // Block the booked slot itself
-    if (bookedSlots.indexOf(rowTimeStr) === -1) bookedSlots.push(rowTimeStr);
-
-    // Block standard slots that fall inside this booking's window
-    for (var s = 0; s < ALL_SLOTS.length; s++) {
-      var slotMins = timeToMins(ALL_SLOTS[s]);
-      if (slotMins > startMins && slotMins < endWithBreak) {
-        if (bookedSlots.indexOf(ALL_SLOTS[s]) === -1)
-          bookedSlots.push(ALL_SLOTS[s]);
-      }
-    }
-
-    // Propose an extra slot at end+break if it doesn't align with a standard slot
+    // Propose extra slot immediately after this booking's break window
     if (endWithBreak < 22 * 60) {
       var candidate = minsToTime(endWithBreak);
-      if (
-        ALL_SLOTS.indexOf(candidate) === -1 &&
-        extraSlots.indexOf(candidate) === -1
-      ) {
+      if (ALL_SLOTS.indexOf(candidate) === -1 && extraSlots.indexOf(candidate) === -1) {
         extraSlots.push(candidate);
       }
     }
   }
 
-  // Remove extra slots that fall inside another booking's occupied range
-  extraSlots = extraSlots.filter(function (slot) {
-    var m = timeToMins(slot);
-    for (var r = 0; r < ranges.length; r++) {
-      if (m >= ranges[r].start && m < ranges[r].end) return false;
-    }
-    return true;
-  });
-
-  // Slots blocked manually by Shoval
+  // 2. Ranges from manually blocked slots
+  // Columns: A=Date, B=Start Time, C=End Time, D=Reason
   var blockedSheet = getOrCreateBlockedSlotsSheet();
   var blockedRows = blockedSheet.getDataRange().getValues();
   var bTz = Session.getScriptTimeZone();
   for (var j = 1; j < blockedRows.length; j++) {
     var bDate = normalizeDate(blockedRows[j][0], bTz);
-    var bTime = normalizeTime(blockedRows[j][1], bTz);
-    if (bDate === date) {
-      if (!bTime) {
-        return { bookedSlots: ALL_SLOTS.slice(), extraSlots: [] };
+    var bStartTime = normalizeTime(blockedRows[j][1], bTz);
+    var bEndTime = normalizeTime(blockedRows[j][2], bTz);
+    if (bDate !== date) continue;
+
+    if (!bStartTime) {
+      // No start time = block whole day
+      return { bookedSlots: ALL_SLOTS.slice(), extraSlots: [] };
+    }
+    var bStart = timeToMins(bStartTime);
+    // If no end time, treat as a single 15-min slot
+    var bEnd = bEndTime ? timeToMins(bEndTime) : bStart + 15;
+    unavailableRanges.push({ start: bStart, end: bEnd });
+  }
+
+  // 3. For each slot, block it if placing a clientDuration booking there (plus break)
+  //    would overlap any unavailable range.
+  var bookedSlots = [];
+  for (var s = 0; s < ALL_SLOTS.length; s++) {
+    var slotMins = timeToMins(ALL_SLOTS[s]);
+    var slotEndMins = slotMins + clientDuration + BREAK_MINUTES;
+    for (var r = 0; r < unavailableRanges.length; r++) {
+      if (overlaps(slotMins, slotEndMins, unavailableRanges[r].start, unavailableRanges[r].end)) {
+        bookedSlots.push(ALL_SLOTS[s]);
+        break;
       }
-      if (bookedSlots.indexOf(bTime) === -1) bookedSlots.push(bTime);
     }
   }
 
-  // Day-of-week restrictions
+  // 4. Filter extra slots by the same duration-aware overlap check
+  extraSlots = extraSlots.filter(function (slot) {
+    var m = timeToMins(slot);
+    var mEnd = m + clientDuration + BREAK_MINUTES;
+    for (var r = 0; r < unavailableRanges.length; r++) {
+      if (overlaps(m, mEnd, unavailableRanges[r].start, unavailableRanges[r].end)) return false;
+    }
+    return true;
+  });
+
+  // 5. Day-of-week restrictions
   var dayOfWeek = new Date(date + "T12:00:00").getDay(); // 0=Sun … 5=Fri, 6=Sat
 
   // Friday: nothing after 14:00
   if (dayOfWeek === 5) {
     for (var f = 0; f < ALL_SLOTS.length; f++) {
-      if (
-        timeToMins(ALL_SLOTS[f]) > timeToMins("14:00") &&
-        bookedSlots.indexOf(ALL_SLOTS[f]) === -1
-      ) {
+      if (timeToMins(ALL_SLOTS[f]) > timeToMins("14:00") && bookedSlots.indexOf(ALL_SLOTS[f]) === -1) {
         bookedSlots.push(ALL_SLOTS[f]);
       }
     }
-    // Extra slots past 14:00 are irrelevant on Fridays
-    extraSlots = extraSlots.filter(function (s) {
-      return timeToMins(s) <= timeToMins("14:00");
-    });
+    extraSlots = extraSlots.filter(function (s) { return timeToMins(s) <= timeToMins("14:00"); });
   }
 
   // Saturday: only 19:00–21:00 is available
   if (dayOfWeek === 6) {
     for (var sa = 0; sa < ALL_SLOTS.length; sa++) {
-      if (
-        timeToMins(ALL_SLOTS[sa]) < timeToMins("19:00") &&
-        bookedSlots.indexOf(ALL_SLOTS[sa]) === -1
-      ) {
+      if (timeToMins(ALL_SLOTS[sa]) < timeToMins("19:00") && bookedSlots.indexOf(ALL_SLOTS[sa]) === -1) {
         bookedSlots.push(ALL_SLOTS[sa]);
       }
     }
@@ -252,20 +240,21 @@ function getOrCreateBlockedSlotsSheet() {
 
   if (!sheet) {
     sheet = ss.insertSheet(BLOCKED_SHEET_NAME);
-    sheet.appendRow(["Date", "Time", "Reason"]);
+    sheet.appendRow(["Date", "Start Time", "End Time", "Reason"]);
     sheet.setFrozenRows(1);
-    var header = sheet.getRange(1, 1, 1, 3);
+    var header = sheet.getRange(1, 1, 1, 4);
     header.setBackground("#C9A96E");
     header.setFontColor("#FFFFFF");
     header.setFontWeight("bold");
-    sheet.setColumnWidths(1, 3, 180);
+    sheet.setColumnWidths(1, 4, 180);
     // Add usage note in row 2
     sheet.appendRow([
       "2026-01-01",
       "",
-      "Example: leave Time empty to block the whole day",
+      "",
+      "Example: leave Start Time empty to block the whole day",
     ]);
-    sheet.getRange(2, 1, 1, 3).setFontColor("#999999").setFontStyle("italic");
+    sheet.getRange(2, 1, 1, 4).setFontColor("#999999").setFontStyle("italic");
   }
 
   return sheet;
@@ -276,6 +265,13 @@ function createBooking(data) {
     throw new Error(
       "לא ניתן להזמין תור ביותר מ-" + MAX_ADVANCE_DAYS + " ימים מראש.",
     );
+  }
+
+  // Validate the chosen slot is still free for this duration
+  var clientDuration = parseInt(data.duration) || 60;
+  var slotCheck = getBookedSlots(data.date, clientDuration);
+  if (slotCheck.bookedSlots.indexOf(data.time) !== -1) {
+    throw new Error("השעה הנבחרת כבר תפוסה. אנא בחרי שעה אחרת.");
   }
 
   var sheet = getOrCreateSheet();
@@ -291,7 +287,7 @@ function createBooking(data) {
     data.date,
     data.time,
     "מאושר", // Column H: Status
-    parseInt(data.duration) || 60, // Column I: Duration in minutes
+    clientDuration, // Column I: Duration in minutes
     data.notes || "", // Column J: Notes
   ]);
 
@@ -721,6 +717,39 @@ function respond(data) {
   return ContentService.createTextOutput(JSON.stringify(data)).setMimeType(
     ContentService.MimeType.JSON,
   );
+}
+
+// ── Run this ONCE to migrate BlockedSlots sheet: Time → Start Time + End Time ──
+function migrateBlockedSlotsSheet() {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName(BLOCKED_SHEET_NAME);
+  if (!sheet) { Logger.log("BlockedSlots sheet not found"); return; }
+
+  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  if (headers[1] === "Start Time") { Logger.log("Already migrated"); return; }
+
+  // Insert new "End Time" column after column B (column 3 = C)
+  sheet.insertColumnAfter(2);
+  sheet.getRange(1, 2).setValue("Start Time");
+  sheet.getRange(1, 3).setValue("End Time");
+
+  // Style the new header cell to match
+  var newHeader = sheet.getRange(1, 3);
+  newHeader.setBackground("#C9A96E");
+  newHeader.setFontColor("#FFFFFF");
+  newHeader.setFontWeight("bold");
+  sheet.setColumnWidth(3, 180);
+
+  // Update example row text in column D (was C)
+  var lastRow = sheet.getLastRow();
+  if (lastRow > 1) {
+    var exampleCell = sheet.getRange(2, 4);
+    if (exampleCell.getValue() === "Example: leave Time empty to block the whole day") {
+      exampleCell.setValue("Example: leave Start Time empty to block the whole day");
+    }
+  }
+
+  Logger.log("Migration done — BlockedSlots now has: Date | Start Time | End Time | Reason");
 }
 
 // ── Run this function directly in the Apps Script editor to debug Twilio ──
