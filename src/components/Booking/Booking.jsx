@@ -40,6 +40,12 @@ export default function Booking() {
             {lang === 'en' ? BOOKING.subtitleEn : BOOKING.subtitleHe}
           </p>
 
+          <ScrollReveal>
+            <p className={styles.vacationNotice}>
+              {lang === 'en' ? BOOKING.vacationNoticeEn : BOOKING.vacationNoticeHe}
+            </p>
+          </ScrollReveal>
+
           <div className={styles.divider} />
 
           {/* Contact cards */}

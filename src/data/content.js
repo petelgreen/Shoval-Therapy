@@ -530,6 +530,8 @@ export const BOOKING = {
   },
   noteHe: "זמינה לתיאום בימים א׳–ו׳ | שעות 9:00–20:00",
   noteEn: "Available Sun–Fri | Hours 9:00–20:00",
+  vacationNoticeHe: "✈️ יוצאת לחופשה 🩷\nהקליניקה תהיה בחופשה החל מ־27.9 ועד סוף אוקטובר (31.10) בע״ה.\nניתן לקבוע טיפולים עד היציאה לחופשה, ואחריה, עם חזרתי 🤍",
+  vacationNoticeEn: "✈️ Going on vacation 🩷\nThe clinic will be closed from September 27 through October 31.\nTreatments can be booked before the vacation and after I return 🤍",
   get note() {
     return this.noteHe;
   },

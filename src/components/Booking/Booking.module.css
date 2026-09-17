@@ -271,6 +271,21 @@
   text-align: center;
 }
 
+.vacationNotice {
+  max-width: 560px;
+  padding: var(--space-5) var(--space-6);
+  margin: 0;
+  border: 1px solid rgba(61, 43, 31, 0.14);
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.5);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: var(--text-md);
+  line-height: 1.8;
+  text-align: center;
+  white-space: pre-line;
+}
+
 .divider {
   width: 60px;
   height: 1px;
