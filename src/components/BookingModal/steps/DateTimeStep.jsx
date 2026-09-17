@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { parseDate, today, getLocalTimeZone } from '@internationalized/date';
 import { CalendarIcon } from 'lucide-react';
-import { AVAILABLE_SLOTS, BOOKING_MODAL } from '../../../data/content';
+import { AVAILABLE_SLOTS, BOOKING, BOOKING_MODAL } from '../../../data/content';
 import { Button } from '../../ui/button-aria';
 import { DatePicker, DatePickerContent } from '../../ui/date-picker';
 import { DateInput } from '../../ui/datefield';
@@ -157,6 +157,10 @@ export default function DateTimeStep({ lang, service, date, time, onDateChange, 
           </DatePickerContent>
         </DatePicker>
       </div>
+
+      <p className={styles.vacationNotice}>
+        {lang === 'en' ? BOOKING.vacationNoticeEn : BOOKING.vacationNoticeHe}
+      </p>
 
       {date && (
         <div className={styles.field}>

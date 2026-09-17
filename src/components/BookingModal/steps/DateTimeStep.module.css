@@ -164,6 +164,20 @@
   margin-bottom: var(--space-5);
 }
 
+.vacationNotice {
+  white-space: pre-line;
+  text-align: center;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  line-height: 1.7;
+  color: var(--color-text-muted);
+  background: rgba(201, 169, 110, 0.12);
+  border-inline-start: 3px solid var(--color-accent);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-4);
+  margin: calc(-1 * var(--space-2)) 0 var(--space-6);
+}
+
 .slotBooked,
 .slot:disabled {
   opacity: 0.3;
